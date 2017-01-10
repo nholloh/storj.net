@@ -1,0 +1,178 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{4324220B-B2C2-4779-88EA-4657AF19487B}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Storj.net</RootNamespace>
+    <AssemblyName>Storj.net</AssemblyName>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="BouncyCastle.Crypto, Version=1.8.1.0, Culture=neutral, PublicKeyToken=0e99375e54769942">
+      <HintPath>..\packages\BouncyCastle.1.8.1\lib\BouncyCastle.Crypto.dll</HintPath>
+      <Private>True</Private>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="RestSharp, Version=105.2.3.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RestSharp.105.2.3\lib\net452\RestSharp.dll</HintPath>
+      <Private>True</Private>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="System">
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="System.ComponentModel.Composition">
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="System.Core">
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="System.IO.Compression">
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="System.Numerics">
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="System.Xml.Linq">
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="System.Data.DataSetExtensions">
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="Microsoft.CSharp">
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="System.Data">
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="System.Net.Http">
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="System.Xml">
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="File\FileDownloader.cs" />
+    <Compile Include="File\FileUploader.cs" />
+    <Compile Include="Model\AddShardResponse.cs" />
+    <Compile Include="Model\Attribute\Default.cs" />
+    <Compile Include="Model\Bucket.cs" />
+    <Compile Include="Model\BucketEntry.cs" />
+    <Compile Include="Model\Cipher.cs" />
+    <Compile Include="Model\Contact.cs" />
+    <Compile Include="Model\ECDSAKey.cs" />
+    <Compile Include="Model\EventArgs\DownloadProgressEventArgs.cs" />
+    <Compile Include="Model\EventArgs\UploadProgressEventArgs.cs" />
+    <Compile Include="Model\Exception\AddFrameToBucketException.cs" />
+    <Compile Include="Model\Exception\BucketCreationException.cs" />
+    <Compile Include="Model\Exception\BucketFileListException.cs" />
+    <Compile Include="Model\Exception\BucketListException.cs" />
+    <Compile Include="Model\Exception\CipherNotFoundException.cs" />
+    <Compile Include="Model\Exception\CreateUserException.cs" />
+    <Compile Include="Model\Exception\DeleteBucketException.cs" />
+    <Compile Include="Model\Exception\DeleteFileException.cs" />
+    <Compile Include="Model\Exception\FrameCreationException.cs" />
+    <Compile Include="Model\Exception\GetFileInfoException.cs" />
+    <Compile Include="Model\Exception\GetFilePointerException.cs" />
+    <Compile Include="Model\Exception\InvalidKeyRingPassphraseException.cs" />
+    <Compile Include="Model\Exception\KeyListException.cs" />
+    <Compile Include="Model\Exception\KeyRegistrationException.cs" />
+    <Compile Include="Model\Exception\MissingShardException.cs" />
+    <Compile Include="Model\Exception\ShardDownloadException.cs" />
+    <Compile Include="Model\Exception\ShardUploadException.cs" />
+    <Compile Include="Model\Exception\StorjException.cs" />
+    <Compile Include="Model\Exception\InvalidDataLengthException.cs" />
+    <Compile Include="Model\Exception\TokenCreationException.cs" />
+    <Compile Include="Model\FileAuthorization.cs" />
+    <Compile Include="Model\FilePointer.cs" />
+    <Compile Include="Model\Frame.cs" />
+    <Compile Include="Model\Operation.cs" />
+    <Compile Include="Model\Shard.cs" />
+    <Compile Include="Model\ShardToken.cs" />
+    <Compile Include="Model\StorjFile.cs" />
+    <Compile Include="Model\Token.cs" />
+    <Compile Include="Model\User.cs" />
+    <Compile Include="Network\EndpointAttribute.cs" />
+    <Compile Include="Network\HeaderAttribute.cs" />
+    <Compile Include="Network\PrerequisitesAttribute.cs" />
+    <Compile Include="Network\Request\AddShardRequest.cs" />
+    <Compile Include="Network\Request\CreateBucketRequest.cs" />
+    <Compile Include="Network\Request\CreateFrameRequest.cs" />
+    <Compile Include="Network\Request\CreateTokenRequest.cs" />
+    <Compile Include="Network\Request\CreateUserRequest.cs" />
+    <Compile Include="Network\Request\DeleteAccountRequest.cs" />
+    <Compile Include="Network\Request\DeleteBucketRequest.cs" />
+    <Compile Include="Network\Request\DeleteFileRequest.cs" />
+    <Compile Include="Network\Request\DeleteFrameRequest.cs" />
+    <Compile Include="Network\Request\DeleteKeyRequest.cs" />
+    <Compile Include="Network\Request\GetBucketRequest.cs" />
+    <Compile Include="Network\Request\GetContactRequest.cs" />
+    <Compile Include="Network\Request\GetContactsRequest.cs" />
+    <Compile Include="Network\Request\GetFilePointersRequest.cs" />
+    <Compile Include="Network\Request\GetFileRequest.cs" />
+    <Compile Include="Network\Request\GetFilesInBucketRequest.cs" />
+    <Compile Include="Network\Request\GetFrameRequest.cs" />
+    <Compile Include="Network\Request\GetFramesRequest.cs" />
+    <Compile Include="Network\Request\ListBucketsRequest.cs" />
+    <Compile Include="Network\Request\ListKeysRequest.cs" />
+    <Compile Include="Network\Request\PasswordResetRequest.cs" />
+    <Compile Include="Network\Request\RegisterKeyRequest.cs" />
+    <Compile Include="Network\Request\StoreFileRequest.cs" />
+    <Compile Include="Network\Request\UpdateBucket.cs" />
+    <Compile Include="Network\StorjRestClient.cs" />
+    <Compile Include="Network\StorjRestRequest.cs" />
+    <Compile Include="Network\StorjRestResponse.cs" />
+    <Compile Include="StorjClient.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Util\AdvFileStream.cs" />
+    <Compile Include="Util\CryptoUtil.cs" />
+    <Compile Include="Util\ECDsaUtil.cs" />
+    <Compile Include="Util\HashUtil.cs" />
+    <Compile Include="Util\HttpShardTransferUtil.cs" />
+    <Compile Include="Util\KeyRingUtil.cs" />
+    <Compile Include="Util\RandomStringUtil.cs" />
+    <Compile Include="Util\ShardingUtil.cs" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
