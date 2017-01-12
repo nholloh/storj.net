@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,6 +13,7 @@ namespace Storj.net.Util
     {
         const int NAME_LENGTH = 48;
         const int CHALLENGE_LENGTH = 32;
+        static RandomNumberGenerator random = RandomNumberGenerator.Create();
 
         [DebuggerStepThrough]
         internal static string GenerateRandomName()
@@ -28,18 +30,20 @@ namespace Storj.net.Util
         [DebuggerStepThrough]
         private static string GenerateRandomString(int length)
         {
-            Random random = new Random();
-
             string input = "abcdefghijklmnopqrstuvwxyz0123456789";
             input += input.ToUpper();
 
             var chars = Enumerable.Range(0, length)
-                                   .Select(x => input[random.Next(0, input.Length)]);
-
-            //otherwise multiple randoms will result in the same string
-            Thread.Sleep(50);
+                                   .Select(x => input[new Random(GetRandomNumber()).Next(0, input.Length)]);
 
             return new string(chars.ToArray());
+        }
+
+        private static int GetRandomNumber()
+        {
+            byte[] number = new byte[4];
+            random.GetBytes(number);
+            return BitConverter.ToInt32(number, 0);
         }
     }
 }

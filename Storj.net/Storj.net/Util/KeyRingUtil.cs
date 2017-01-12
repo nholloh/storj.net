@@ -34,6 +34,13 @@ namespace Storj.net.Util
             Save();
         }
 
+        internal static void Remove(string name)
+        {
+            Load();
+            ((JObject)decryptedKeyRing).Remove(name);
+            Save();
+        }
+
         internal static void Delete()
         {
             if (System.IO.File.Exists(StorjClient.KeyRingFile))

@@ -83,6 +83,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="File\FileDownloader.cs" />
+    <Compile Include="File\EmptyFrameCreator.cs" />
     <Compile Include="File\FileUploader.cs" />
     <Compile Include="Model\AddShardResponse.cs" />
     <Compile Include="Model\Attribute\Default.cs" />
@@ -101,6 +102,7 @@
     <Compile Include="Model\Exception\CreateUserException.cs" />
     <Compile Include="Model\Exception\DeleteBucketException.cs" />
     <Compile Include="Model\Exception\DeleteFileException.cs" />
+    <Compile Include="Model\Exception\DeleteKeyException.cs" />
     <Compile Include="Model\Exception\FrameCreationException.cs" />
     <Compile Include="Model\Exception\GetFileInfoException.cs" />
     <Compile Include="Model\Exception\GetFilePointerException.cs" />
@@ -113,6 +115,7 @@
     <Compile Include="Model\Exception\StorjException.cs" />
     <Compile Include="Model\Exception\InvalidDataLengthException.cs" />
     <Compile Include="Model\Exception\TokenCreationException.cs" />
+    <Compile Include="Model\Exception\UpdateBucketException.cs" />
     <Compile Include="Model\FileAuthorization.cs" />
     <Compile Include="Model\FilePointer.cs" />
     <Compile Include="Model\Frame.cs" />

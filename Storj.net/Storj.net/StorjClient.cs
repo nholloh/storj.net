@@ -69,7 +69,7 @@ namespace Storj.net
         /// <summary>
         /// The size of the file shards. Smaller means more shards but is more storage efficient. Larger means less farmers involved.
         /// </summary>
-        [Default(1024 * 1024)]
+        [Default(1024 * 1024 * 4)]
         public static int ShardSize { get; set; }
 
         /// <summary>
@@ -119,7 +119,7 @@ namespace Storj.net
             //disadvantage: only current key has access
             //advantage: significantly faster than retrieving all keys first
             if (StorjRestClient.AuthenticationMethod == AuthenticationMethod.SIGNATURE)
-                 response = StorjRestClient.Request<Bucket>(new CreateBucketRequest("bucketname", (new string[1] { StorjRestClient.GetPublicKey() }).ToList()));
+                 response = StorjRestClient.Request<Bucket>(new CreateBucketRequest(bucketname, (new string[1] { StorjRestClient.GetPublicKey() }).ToList()));
             else
             {
                 //if logged in by basic authentication: retrieve list of keys first
@@ -129,13 +129,26 @@ namespace Storj.net
                 foreach (ECDSAKey key in keys)
                     keyList.Add(key.PublicKey);
 
-                response = StorjRestClient.Request<Bucket>(new CreateBucketRequest("bucketname", keyList));
+                response = StorjRestClient.Request<Bucket>(new CreateBucketRequest(bucketname, keyList));
             }
+
+            //disabled fetching keys for testing
+            //response = StorjRestClient.Request<Bucket>(new CreateBucketRequest(bucketname, null));
 
             if ((int)response.StatusCode != 201)
                 ThrowStorjResponseError(new BucketCreationException(), response.Response);
 
             return response.ToObject();
+        }
+        /// <summary>
+        /// Creates an empty frame within a bucket which can be used for bucket metadata (in filename).
+        /// </summary>
+        /// <param name="bucketId">The Id of the bucket where the frame should be created</param>
+        /// <param name="storjFilename">The name of the frame</param>
+        /// <returns></returns>
+        public static StorjFile CreateEmptyFrame(string bucketId, string storjFilename)
+        {
+            return new EmptyFrameCreator(bucketId, storjFilename).Start();
         }
 
         /// <summary>
@@ -160,6 +173,18 @@ namespace Storj.net
                 ThrowStorjResponseError(new StorjException(), response.Response);
 
             return keyPair;
+        }
+
+        /// <summary>
+        /// Deletes a public key from this account.
+        /// </summary>
+        /// <param name="publickey">The public key to remove</param>
+        public static void DeleteKey(string publickey)
+        {
+            StorjRestResponse<object> response = StorjRestClient.Request(new DeleteKeyRequest(publickey));
+
+            if ((int)response.StatusCode != 204)
+                ThrowStorjResponseError(new DeleteKeyException(), response.Response);
         }
 
         /// <summary>
@@ -196,7 +221,7 @@ namespace Storj.net
         /// <param name="filepath">The path where the file shall be downloaded to.</param>
         /// <param name="downloadProgressEvent">A method with one parameter of type DownloadProgressEventArgs that is triggered when there is progress to report.</param>
         /// <param name="cipher">A cipher to override the cipher automatically loaded from the key ring.</param>
-        public static void DownloadFile(string bucketId, string fileId, string filepath, Action<DownloadProgressEventArgs> downloadProgressEvent, Cipher cipher = null)
+        public static void DownloadFile(string bucketId, string fileId, string filepath, Action<DownloadProgressEventArgs> downloadProgressEvent, string cipher = null)
         {
             new FileDownloader(bucketId, fileId, filepath, downloadProgressEvent, cipher).Start();
         }
@@ -301,6 +326,22 @@ namespace Storj.net
         }
 
         /// <summary>
+        /// Tests whether the keyring is accessible. If the keyring's format is corrupt or the passphrase is wrong, this method will return false. If no keyring is existent,
+        /// a new one will be created.
+        /// </summary>
+        /// <returns>True if the keyring is accessible with the current passphrase, otherwise false.</returns>
+        public static bool TestKeyRing()
+        {
+            try
+            {
+                KeyRingUtil.Store("test", new Cipher("test", new byte[1], new byte[1]));
+                KeyRingUtil.Remove("test");
+                return true;
+            }
+            catch (Exception e) { return false; }
+        }
+
+        /// <summary>
         /// Encrypts and uploads a file (filepath) into the bucket (bucketId) and triggers the uploadProgressEvent method when there is progress to report
         /// </summary>
         /// <param name="bucketId">The Id of the bucket where the file shall be uploaded.</param>
@@ -310,7 +351,7 @@ namespace Storj.net
         /// <param name="cipher">A cipher that overrides the automatically generated cipher. Use only, when files shall always be encrypted with the same key.
         /// Only automatically generated ciphers will be saved in the keyring.</param>
         /// <returns>The StorjFile object representing the file in the Storj network.</returns>
-        public static StorjFile UploadFile(string bucketId, string filepath, Action<UploadProgressEventArgs> uploadProgressEvent, string storjFileName = "", Cipher cipher = null)
+        public static StorjFile UploadFile(string bucketId, string filepath, Action<UploadProgressEventArgs> uploadProgressEvent, string storjFileName = "", string cipher = "")
         {
             FileUploader uploader = new FileUploader(bucketId, filepath, uploadProgressEvent, storjFileName, cipher);
             return uploader.Start();
@@ -320,6 +361,24 @@ namespace Storj.net
         {
             exception.Message = "REST returned an error with code " + response.StatusCode.ToString() + " message: " + response.Content;
             throw exception;
+        }
+
+        public static void Test(params string[] args)
+        {
+            CryptoUtil.Encrypt(args[0], args[1], Cipher.FromString(args[2]));
+            List<Shard> shards = new List<Shard>();
+            ShardingUtil sharder = new ShardingUtil(args[1]);
+
+            Shard shard;
+            while ((shard = sharder.NextShard()) != null)
+                shards.Add(shard);
+
+            //reverse
+            sharder = new ShardingUtil(args[4]);
+            foreach (Shard s in shards)
+                sharder.AppendShard(s.Path);
+            sharder.FinalizeFile();
+            CryptoUtil.Decrypt(args[4], args[3], Cipher.FromString(args[2]));
         }
     }
 }

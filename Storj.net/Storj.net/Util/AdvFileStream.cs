@@ -9,12 +9,12 @@ using System.Threading.Tasks;
 
 namespace Storj.net.Util
 {
-    internal class AdvFileStream : FileStream
+    public class AdvFileStream : FileStream
     {
         internal bool Closed { get; private set; }
 
         [DebuggerStepThrough]
-        internal AdvFileStream(String Path, FileMode FileMode) : base(Path, FileMode)
+        public AdvFileStream(String Path, FileMode FileMode, FileAccess FileAccess = FileAccess.ReadWrite, FileShare FileShare = FileShare.Read) : base(Path, FileMode, FileAccess, FileShare)
         {
             this.Closed = false;
         }

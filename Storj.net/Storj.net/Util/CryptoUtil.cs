@@ -11,6 +11,15 @@ namespace Storj.net.Util
 {
     class CryptoUtil
     {
+        /* 
+         * Encrypt and Decrypt code by:
+         * CraigTP, StackOverFlow
+         * http://stackoverflow.com/questions/10168240/encrypting-decrypting-a-string-in-c-sharp
+         * 
+         * Modified by Niklas Holloh, 10.01.2016
+         * 
+         */
+
         // This constant is used to determine the keysize of the encryption algorithm in bits.
         // We divide this by 8 within the code below to get the equivalent number of bytes.
         private const int KEYSIZE = 256;
@@ -26,85 +35,140 @@ namespace Storj.net.Util
         internal static void Encrypt(string sourceFile, string targetFile, Cipher cipher)
         {
             AdvFileStream source = new AdvFileStream(sourceFile, FileMode.Open);
-            AdvFileStream target = new AdvFileStream(targetFile, FileMode.Create);
+            AdvFileStream target;
 
-            using (var password = new Rfc2898DeriveBytes(cipher.Passphrase, cipher.Salt, DERIVATION_ITERATIONS))
+            try
             {
-                var keyBytes = password.GetBytes(KEYSIZE / 8);
-                using (var symmetricKey = new RijndaelManaged())
+                if (System.IO.File.Exists(targetFile))
+                    System.IO.File.Delete(targetFile);
+
+                target = new AdvFileStream(targetFile, FileMode.Create);
+            }
+            catch (Exception e)
+            {
+                source.Close();
+                throw e;
+            }
+
+            try
+            {
+                using (var password = new Rfc2898DeriveBytes(cipher.Passphrase, cipher.Salt, DERIVATION_ITERATIONS))
                 {
-                    symmetricKey.BlockSize = 256;
-                    symmetricKey.Mode = CipherMode.CBC;
-                    symmetricKey.Padding = PaddingMode.PKCS7;
-                    using (var encryptor = symmetricKey.CreateEncryptor(keyBytes, cipher.Iv))
+                    var keyBytes = password.GetBytes(KEYSIZE / 8);
+                    using (var symmetricKey = new RijndaelManaged())
                     {
-                        using (var cryptoStream = new CryptoStream(target, encryptor, CryptoStreamMode.Write))
+                        symmetricKey.BlockSize = 256;
+                        symmetricKey.Mode = CipherMode.CBC;
+                        symmetricKey.Padding = PaddingMode.PKCS7;
+                        using (var encryptor = symmetricKey.CreateEncryptor(keyBytes, cipher.Iv))
                         {
-                            while (source.Position + STREAM_BUFFER_SIZE < source.Length)
+                            using (var cryptoStream = new CryptoStream(target, encryptor, CryptoStreamMode.Write))
                             {
-                                byte[] buffer = source.Read(STREAM_BUFFER_SIZE);
-                                cryptoStream.Write(buffer, 0, buffer.Length);
-                            }
+                                while (source.Position + STREAM_BUFFER_SIZE < source.Length)
+                                {
+                                    byte[] buffer = source.Read(STREAM_BUFFER_SIZE);
+                                    cryptoStream.Write(buffer, 0, buffer.Length);
+                                }
 
-                            if (source.Position < source.Length)
-                            {
-                                int remainingBytes = (int)(source.Length - source.Position);
-                                byte[] buffer = source.Read(remainingBytes);
-                                cryptoStream.Write(buffer, 0, buffer.Length);
-                            }
+                                if (source.Position < source.Length)
+                                {
+                                    int remainingBytes = (int)(source.Length - source.Position);
+                                    byte[] buffer = source.Read(remainingBytes);
+                                    cryptoStream.Write(buffer, 0, buffer.Length);
+                                }
 
-                            cryptoStream.FlushFinalBlock();
-                            cryptoStream.Close();
-                            source.Close();
-                            target.Close();
+                                cryptoStream.FlushFinalBlock();
+                                source.Close();
+                                target.Close();
+                            }
                         }
                     }
                 }
             }
+            catch (Exception e)
+            {
+                CleanUp("", targetFile);
+                throw e;
+            }
+
+            if (System.IO.File.Exists(targetFile))
+                System.IO.File.SetAttributes(targetFile, System.IO.File.GetAttributes(targetFile) | FileAttributes.Hidden);
         }
 
         internal static void Decrypt(string sourceFile, string targetFile, Cipher cipher)
         {
             AdvFileStream source = new AdvFileStream(sourceFile, FileMode.Open);
-            AdvFileStream target = new AdvFileStream(targetFile, FileMode.Create);
+            AdvFileStream target;
 
-            using (var password = new Rfc2898DeriveBytes(cipher.Passphrase, cipher.Salt, DERIVATION_ITERATIONS))
+            try
             {
-                var keyBytes = password.GetBytes(KEYSIZE / 8);
-                using (var symmetricKey = new RijndaelManaged())
+                if (System.IO.File.Exists(targetFile))
+                    System.IO.File.Delete(targetFile);
+
+                target = new AdvFileStream(targetFile, FileMode.Create);
+            }
+            catch (Exception e)
+            {
+                source.Close();
+                throw e;
+            }
+
+            try
+            {
+                using (var password = new Rfc2898DeriveBytes(cipher.Passphrase, cipher.Salt, DERIVATION_ITERATIONS))
                 {
-                    symmetricKey.BlockSize = 256;
-                    symmetricKey.Mode = CipherMode.CBC;
-                    symmetricKey.Padding = PaddingMode.PKCS7;
-                    using (var decryptor = symmetricKey.CreateDecryptor(keyBytes, cipher.Iv))
+                    var keyBytes = password.GetBytes(KEYSIZE / 8);
+                    using (var symmetricKey = new RijndaelManaged())
                     {
-                        using (var cryptoStream = new CryptoStream(source, decryptor, CryptoStreamMode.Read))
+                        symmetricKey.BlockSize = 256;
+                        symmetricKey.Mode = CipherMode.CBC;
+                        symmetricKey.Padding = PaddingMode.PKCS7;
+                        using (var decryptor = symmetricKey.CreateDecryptor(keyBytes, cipher.Iv))
                         {
-                            while (source.Position + STREAM_BUFFER_SIZE < source.Length)
+                            using (var cryptoStream = new CryptoStream(source, decryptor, CryptoStreamMode.Read))
                             {
-                                byte[] buffer = new byte[STREAM_BUFFER_SIZE];
-                                cryptoStream.Read(buffer, 0, STREAM_BUFFER_SIZE);
+                                while (source.Position + STREAM_BUFFER_SIZE < source.Length)
+                                {
+                                    byte[] buffer = new byte[STREAM_BUFFER_SIZE];
+                                    cryptoStream.Read(buffer, 0, STREAM_BUFFER_SIZE);
 
-                                target.Write(buffer);
+                                    target.Write(buffer);
+                                }
+
+                                if (source.Position < source.Length)
+                                {
+                                    int remainingBytes = (int)(source.Length - source.Position);
+
+                                    byte[] buffer = new byte[remainingBytes];
+                                    cryptoStream.Read(buffer, 0, remainingBytes);
+
+                                    target.Write(buffer);
+                                }
+
+                                cryptoStream.Close();
+                                source.Close();
+                                target.Close();
                             }
-
-                            if (source.Position < source.Length)
-                            {
-                                int remainingBytes = (int)(source.Length - source.Position);
-
-                                byte[] buffer = new byte[remainingBytes];
-                                cryptoStream.Read(buffer, 0, remainingBytes);
-
-                                target.Write(buffer);
-                            }
-
-                            source.Close();
-                            target.Close();
-                            cryptoStream.Close();
                         }
                     }
                 }
             }
+            catch (Exception e)
+            {
+                source.Close();
+                target.Close();
+                CleanUp(sourceFile, targetFile);
+                throw e;
+            }
+        }
+
+        private static void CleanUp(string source, string target)
+        {
+            if (System.IO.File.Exists(source))
+                System.IO.File.Delete(source);
+
+            if (System.IO.File.Exists(target))
+                System.IO.File.Delete(target);
         }
 
         internal static void EncryptToFile(string data, string filepath, Cipher cipher)

@@ -13,7 +13,8 @@ namespace Storj.net.Network.Request
         [JsonIgnore]
         public string BucketId { get; set; }
 
-        [JsonProperty("pubkeys")]
+        //[JsonProperty("pubkeys")]
+        [JsonIgnore]
         public List<string> PublicKeys { get; set; }
 
         [JsonProperty("name")]

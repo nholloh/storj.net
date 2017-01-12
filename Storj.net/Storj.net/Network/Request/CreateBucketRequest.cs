@@ -18,7 +18,6 @@ namespace Storj.net.Network.Request
 
         public CreateBucketRequest(string name, List<string> publicKeys)
         {
-            // TODO: find out how pub keys for buckets look like
             this.Name = name;
             this.PublicKeys = publicKeys;
         }

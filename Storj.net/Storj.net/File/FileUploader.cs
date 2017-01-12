@@ -16,8 +16,8 @@ namespace Storj.net.File
     class FileUploader
     {
         const string MIMETYPE = "application/octet-stream";
-        const int DEFAULT_UPLOAD_THREADS = 2;
-        const int MAX_UPLOAD_RETRIES = 3;
+        const int DEFAULT_UPLOAD_THREADS = 1;
+        const int MAX_UPLOAD_RETRIES = 5;
 
         /* HOW THIS WORKS:
          * 
@@ -55,15 +55,16 @@ namespace Storj.net.File
         private List<Thread> uploadWorkers = new List<Thread>();
         private long bytesToUpload = 0;
         private long bytesUploaded = 0;
+        private bool uploadAborted = false;
         
-        public FileUploader(string bucketId, string filename, Action<UploadProgressEventArgs> progressEvent, string storjFilename= "", Cipher cipher = null)
+        public FileUploader(string bucketId, string filename, Action<UploadProgressEventArgs> progressEvent, string storjFilename= "", string cipher = null)
         {
             this.BucketId = bucketId;
             this.Filename = filename;
             this.cryptFilename = filename + ".crypt";
             this.StorjFilename = storjFilename;
             this.ConcurrentUploadThreads = DEFAULT_UPLOAD_THREADS;
-            this.cipher = cipher;
+            this.cipher = (cipher == null ? null : Cipher.FromString(cipher));
         }
 
         public StorjFile Start()
@@ -88,7 +89,6 @@ namespace Storj.net.File
             if (cipher == null)
             {
                 cipher = CryptoUtil.GenerateCipher();
-                Console.WriteLine(cipher.ToString());
                 KeyRingUtil.Store(StorjFilename, cipher);
             }
             CryptoUtil.Encrypt(this.Filename, this.cryptFilename, cipher);            
@@ -114,18 +114,27 @@ namespace Storj.net.File
             //join workers to wait for them to complete uploading shards
             foreach (Thread worker in uploadWorkers)
             {
+                if (uploadAborted)
+                    break;
                 worker.Join();
-                if (worker.ThreadState == ThreadState.Aborted)
-                    throw new ShardUploadException();
             }
+
+            if (uploadAborted)
+            {
+                if (System.IO.File.Exists(cryptFilename))
+                    System.IO.File.Delete(cryptFilename);
+
+                throw new ShardUploadException();
+            }
+
+            if (System.IO.File.Exists(cryptFilename))
+                System.IO.File.Delete(cryptFilename);
 
             //add frame to bucket
             //if not successful -> data will expire in the network
             StorjRestResponse<StorjFile> frameToBucketResponse = StorjRestClient.Request<StorjFile>(new StoreFileRequest(this.BucketId, frame.Id, MIMETYPE, this.StorjFilename));
             if (frameToBucketResponse.StatusCode != System.Net.HttpStatusCode.OK)
                 StorjClient.ThrowStorjResponseError(new AddFrameToBucketException(), frameToBucketResponse.Response);
-
-            System.IO.File.Delete(cryptFilename);
 
             return frameToBucketResponse.ToObject();
         }
@@ -149,8 +158,10 @@ namespace Storj.net.File
                     } catch (Exception e)
                     {
                         retries++;
-                        if (retries >= MAX_UPLOAD_RETRIES)
-                            throw new ShardUploadException();
+                        if (retries < MAX_UPLOAD_RETRIES)
+                            continue;
+                        uploadAborted = true;
+                        Thread.CurrentThread.Abort();
                     }
                 }
             }

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Storj.net.Util
 {
-    class HashUtil
+    public class HashUtil
     {
         [DebuggerStepThrough]
         public static string SHA256EncryptToString(string value)

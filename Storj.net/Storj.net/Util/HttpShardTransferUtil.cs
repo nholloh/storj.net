@@ -16,6 +16,7 @@ namespace Storj.net.Util
         {
             string endpoint = "http://" + token.Farmer.Address + ":" + token.Farmer.Port.ToString() + "/shards/" + shard.Hash + "?token=" + token.TokenKey;
             WebRequest request = HttpWebRequest.Create(endpoint);
+            request.Timeout = 240000;
 
             //set header
             request.Method = "POST";
@@ -51,6 +52,7 @@ namespace Storj.net.Util
             request.Method = "GET";
             request.Headers.Add("x-storj-node-id", ptr.Farmer.NodeId);
             request.ContentType = "application/octet-stream";
+            request.Timeout = 240000;
 
             AdvFileStream shardStream = new AdvFileStream(localPath, FileMode.Create);
 

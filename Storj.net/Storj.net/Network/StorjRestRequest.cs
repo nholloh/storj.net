@@ -117,7 +117,7 @@ namespace Storj.net.Network
 
         public bool IsQueryOnly()
         {
-            return JObject.FromObject(this).Count == 1;
+            return JObject.FromObject(this).Count == 1 && Method != Method.POST;
         }
     }
 }

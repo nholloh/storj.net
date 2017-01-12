@@ -6,8 +6,7 @@ using System.Threading.Tasks;
 
 namespace Storj.net.Model.Exception
 {
-    public class StorjException : System.Exception
+    class UpdateBucketException : StorjException
     {
-        public new string Message { get; set; }
     }
 }

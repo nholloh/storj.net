@@ -12,7 +12,7 @@ namespace Storj.net.Util
      * original java code by Stephen Nutbrown 23/07/2016
      * ported to C# and modified to support concurrent uploads by Niklas Holloh on 08/01/2017
      */
-    class ShardingUtil
+    public class ShardingUtil
     {
         static ShardingUtil()
         {
@@ -48,15 +48,14 @@ namespace Storj.net.Util
             // Save current shard index so that concurrent threads calling NextShard will retrieve the correct shard without interfering with this process.
             // This allows for multiple parallel upload workers for a single file.
             int tempShardIndex = shardIndex;
-            
+            shardIndex++;
+
             long streamPosition = (StorjClient.ShardSize - 4) * tempShardIndex;
 
             if (streamPosition > new FileInfo(fileName).Length)
                 return null;
 
-            shardIndex++;
-
-            AdvFileStream input = new AdvFileStream(fileName, FileMode.Open);
+            AdvFileStream input = new AdvFileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
             string shardFileName = Path.Combine(StorjClient.ShardDirectory, RandomStringUtil.GenerateRandomName() + ".shard");
             AdvFileStream shardStream = new AdvFileStream(shardFileName, FileMode.Create);
 
@@ -129,6 +128,7 @@ namespace Storj.net.Util
                 return;
 
             AdvFileStream target = new AdvFileStream(this.fileName, FileMode.OpenOrCreate);
+            target.Position = target.Length;
 
             for (this.shardIndex = this.shardIndex; this.shardIndex < shards.Count; this.shardIndex++)
             {
@@ -143,7 +143,7 @@ namespace Storj.net.Util
         private void AppendShardToFile(int index, AdvFileStream target)
         {
             AdvFileStream shardStream = new AdvFileStream(shards[index].Path, FileMode.Open);
-            
+
             // skip first four bytes as they are index only
             shardStream.Position = 4;
 
@@ -157,19 +157,50 @@ namespace Storj.net.Util
         internal void FinalizeFile()
         {
             // read last shard data again
-            AdvFileStream target = new AdvFileStream(this.fileName, FileMode.Open);
-            target.Position = target.Length - (StorjClient.ShardSize - 4);
+            AdvFileStream target = new AdvFileStream(fileName, FileMode.Open);
+            try
+            {
+                target.Position = target.Length - (StorjClient.ShardSize - 4);
 
-            byte[] lastShardData = target.Read(StorjClient.ShardSize - 4);
+                byte[] lastShardData = target.Read(StorjClient.ShardSize - 4);
 
-            // truncate trailing zeroes
-            int lastIndex = Array.FindLastIndex(lastShardData, b => b != 0);
-            Array.Resize(ref lastShardData, lastIndex + 1);
+                // truncate trailing zeroes
+                int lastIndex = Array.FindLastIndex(lastShardData, b => b != 0);
+                Array.Resize(ref lastShardData, lastIndex + 1);
 
-            // reset position to beginning of this shard and write truncated data
-            target.Position = target.Length - (StorjClient.ShardSize - 4);
-            target.Write(lastShardData);
-            target.SetLength(target.Length - (StorjClient.ShardSize - 4) + lastIndex + 1);
+                // reset position to beginning of this shard and write truncated data
+                target.Position = target.Length - (StorjClient.ShardSize - 4);
+                target.Write(lastShardData);
+                target.SetLength(target.Length - (StorjClient.ShardSize - 4) + lastIndex + 1);
+            }
+            catch (Exception ex)
+            {
+                target.Close();
+                throw ex;
+            }
+            target.Close();
+        }
+
+        public static void RemoveTrailingZeroes(string fileName)
+        {
+            AdvFileStream target = new AdvFileStream(fileName, FileMode.Open);
+            try
+            {
+
+                byte[] lastShardData = target.Read(target.Length);
+
+                // truncate trailing zeroes
+                int lastIndex = Array.FindLastIndex(lastShardData, b => b != 0);
+                Array.Resize(ref lastShardData, lastIndex + 1);
+
+                // reset position to beginning of this shard and write truncated data
+                target.SetLength(target.Length - lastIndex + 1);
+            }
+            catch (Exception ex)
+            {
+                target.Close();
+                throw ex;
+            }
             target.Close();
         }
     }

@@ -22,7 +22,7 @@ namespace Storj.net.Model
 
         public override string ToString()
         {
-            return JObject.FromObject(this).ToString();
+            return JObject.FromObject(this).ToString(Newtonsoft.Json.Formatting.None);
         }
 
         public static Cipher FromString(string value)

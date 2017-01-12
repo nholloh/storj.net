@@ -16,9 +16,9 @@ namespace Storj.net.File
 {
     class FileDownloader
     {
-        const int DEFAULT_DOWNLOAD_THREADS = 1;
+        const int DEFAULT_DOWNLOAD_THREADS = 6;
         const int POINTERS_PER_REQUEST = 100;
-        const int MAX_DOWNLOAD_RETRIES = 3;
+        const int MAX_DOWNLOAD_RETRIES = 5;
 
         /* HOW THIS WORKS:
          * 
@@ -50,7 +50,7 @@ namespace Storj.net.File
         private long bytesToDownload = 0;
         private long bytesDownloaded = 0;
 
-        public FileDownloader(string bucketId, string fileId, string filename, Action<DownloadProgressEventArgs> progressEvent, Cipher cipher = null)
+        public FileDownloader(string bucketId, string fileId, string filename, Action<DownloadProgressEventArgs> progressEvent, string cipher = null)
         {
             this.BucketId = bucketId;
             this.Filename = filename;
@@ -58,7 +58,7 @@ namespace Storj.net.File
             this.cryptFilename = filename + ".crypt";
             
             this.ConcurrentDownloadThreads = DEFAULT_DOWNLOAD_THREADS;
-            this.cipher = cipher;
+            this.cipher = (cipher == null ? null : Cipher.FromString(cipher));
         }
 
         public void Start()
@@ -105,7 +105,11 @@ namespace Storj.net.File
             {
                 worker.Join();
                 if (worker.ThreadState == ThreadState.Aborted)
+                {
+                    if (System.IO.File.Exists(cryptFilename))
+                        System.IO.File.Delete(cryptFilename);
                     throw new ShardDownloadException();
+                }
             }
 
             //remove zeros at the end of the file
@@ -114,12 +118,15 @@ namespace Storj.net.File
             sharder.FinalizeFile();
 
             //get cipher from keyring
-            cipher = KeyRingUtil.Get(file.Filename);
+            if (cipher == null)
+                cipher = KeyRingUtil.Get(file.Filename);
 
             if (cipher == null)
+            {
+                if (System.IO.File.Exists(cryptFilename))
+                    System.IO.File.Delete(cryptFilename);
                 throw new CipherNotFoundException();
-
-            Console.WriteLine(cipher.ToString());
+            }
 
             //decrypt file
             CryptoUtil.Decrypt(cryptFilename, Filename, cipher);
@@ -145,7 +152,7 @@ namespace Storj.net.File
                 {
                     retries++;
                     if (retries >= MAX_DOWNLOAD_RETRIES)
-                        throw new ShardDownloadException();
+                        Thread.CurrentThread.Abort();
                 }
             }
         }
