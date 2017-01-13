@@ -140,6 +140,15 @@ namespace Storj.net.Util
             target.Close();
         }
 
+        internal void CleanUp()
+        {
+            foreach (Shard shard in shards.Values)
+            {
+                if (System.IO.File.Exists(shard.Path))
+                    System.IO.File.Delete(shard.Path);
+            }
+        }
+
         private void AppendShardToFile(int index, AdvFileStream target)
         {
             AdvFileStream shardStream = new AdvFileStream(shards[index].Path, FileMode.Open);

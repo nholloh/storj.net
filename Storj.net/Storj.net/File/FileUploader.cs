@@ -16,7 +16,7 @@ namespace Storj.net.File
     class FileUploader
     {
         const string MIMETYPE = "application/octet-stream";
-        const int DEFAULT_UPLOAD_THREADS = 1;
+        const int DEFAULT_UPLOAD_THREADS = 10;
         const int MAX_UPLOAD_RETRIES = 5;
 
         /* HOW THIS WORKS:
@@ -70,15 +70,13 @@ namespace Storj.net.File
         public StorjFile Start()
         {
             //retrieve token
-            StorjRestResponse<Token> tokenResponse = StorjRestClient.Request<Token>(new CreateTokenRequest(BucketId, Model.Operation.PUSH));
-            if (tokenResponse.StatusCode != System.Net.HttpStatusCode.Created)
-                StorjClient.ThrowStorjResponseError(new TokenCreationException(), tokenResponse.Response);
-            token = tokenResponse.ToObject();
+            RefreshToken();
 
             //create frame
+            Log.Debug("Creating staging frame");
             StorjRestResponse<Frame> frameResponse = StorjRestClient.Request<Frame>(new CreateFrameRequest());
             if (frameResponse.StatusCode != System.Net.HttpStatusCode.OK)
-                StorjClient.ThrowStorjResponseError(new FrameCreationException(), tokenResponse.Response);
+                StorjClient.ThrowStorjResponseError(new FrameCreationException(), frameResponse.Response);
             frame = frameResponse.ToObject();
 
             //if no storj file name has been specified: generate a random one (otherwise bridge might reject files due to same name although might have a different name locally)
@@ -91,8 +89,10 @@ namespace Storj.net.File
                 cipher = CryptoUtil.GenerateCipher();
                 KeyRingUtil.Store(StorjFilename, cipher);
             }
-            CryptoUtil.Encrypt(this.Filename, this.cryptFilename, cipher);            
+            Log.Debug("Encrypting file {0}", this.cryptFilename);
+            CryptoUtil.Encrypt(this.Filename, this.cryptFilename, cipher);
 
+            Log.Debug("Initializing sharder for file {0}", this.cryptFilename);
             sharder = new ShardingUtil(this.cryptFilename);
 
             bytesToUpload = sharder.ShardCount * StorjClient.ShardSize;
@@ -132,11 +132,23 @@ namespace Storj.net.File
 
             //add frame to bucket
             //if not successful -> data will expire in the network
+            Log.Debug("Adding frame {0} to bucket {1} with name {2}", frame.Id, this.BucketId, this.StorjFilename);
             StorjRestResponse<StorjFile> frameToBucketResponse = StorjRestClient.Request<StorjFile>(new StoreFileRequest(this.BucketId, frame.Id, MIMETYPE, this.StorjFilename));
+
             if (frameToBucketResponse.StatusCode != System.Net.HttpStatusCode.OK)
                 StorjClient.ThrowStorjResponseError(new AddFrameToBucketException(), frameToBucketResponse.Response);
 
             return frameToBucketResponse.ToObject();
+        }
+
+        private void RefreshToken()
+        {
+            Log.Debug("Retrieving token for operation");
+
+            StorjRestResponse<Token> tokenResponse = StorjRestClient.Request<Token>(new CreateTokenRequest(BucketId, Model.Operation.PUSH));
+            if (tokenResponse.StatusCode != System.Net.HttpStatusCode.Created)
+                StorjClient.ThrowStorjResponseError(new TokenCreationException(), tokenResponse.Response);
+            token = tokenResponse.ToObject();
         }
 
         private void UploadWorker()
@@ -150,6 +162,7 @@ namespace Storj.net.File
                 {
                     try
                     {
+                        Log.Debug("Trying to upload shard {0}, attempt {1}", shard.Index, retries);
                         ProcessShard(shard);
                         bytesUploaded += StorjClient.ShardSize;
                         ProgressUpdate();
@@ -157,9 +170,12 @@ namespace Storj.net.File
                         break;
                     } catch (Exception e)
                     {
+                        Log.Debug("Upload of shard {0} failed, attempt {1}", shard.Index, retries);
                         retries++;
                         if (retries < MAX_UPLOAD_RETRIES)
                             continue;
+
+                        Log.Debug("Upload of shard {0} ultimately failed, after {1} attempts", shard.Index, retries - 1);
                         uploadAborted = true;
                         Thread.CurrentThread.Abort();
                     }
@@ -169,15 +185,28 @@ namespace Storj.net.File
 
         private void ProcessShard(Shard shard)
         {
+            Log.Debug("Requesting upload token for shard {0}", shard.Index);
             StorjRestResponse<ShardToken> shardTokenResponse = StorjRestClient.Request<ShardToken>(new AddShardRequest(
-                        frame.Id, shard.Hash, shard.Size, shard.Index, shard.Challenges, shard.Tree));
+                        frame.Id, shard.Hash, shard.Size, shard.Index, shard.Challenges, shard.Tree, StorjClient.ExcludedFarmers));
 
             if (shardTokenResponse.StatusCode != System.Net.HttpStatusCode.OK)
                 StorjClient.ThrowStorjResponseError(new ShardUploadException(), shardTokenResponse.Response);
 
+            Log.Debug("Requesting upload token for shard {0} successful. Starting upload to farmer", shard.Index);
+
             ShardToken shardToken = shardTokenResponse.ToObject();
 
-            HttpShardTransferUtil.UploadShard(shard, shardToken);
+            try
+            {
+                HttpShardTransferUtil.UploadShard(shard, shardToken);
+            } catch (Exception e)
+            {
+                Log.Debug("Excluding bad farmer {0}", shardToken.Farmer.NodeId);
+                StorjClient.ExcludedFarmers.Add(shardToken.Farmer.NodeId);
+                throw e;
+            }
+
+            Log.Debug("Upload of shard {0} successfully completed", shard.Index);
         }
 
         private void ProgressUpdate()

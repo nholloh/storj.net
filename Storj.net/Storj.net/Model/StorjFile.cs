@@ -21,6 +21,9 @@ namespace Storj.net.Model
         [JsonProperty("id")]
         public string FileId { get; set; }
 
+        [JsonProperty("size")]
+        public long Size { get; set; }
+
         public StorjFile() { }
 
         public StorjFile(string frame, string mimetype, string filename)

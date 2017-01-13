@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Storj.net.Network.Request
 {
-    [Endpoint("/buckets/{BucketId}/files/{FileId}?skip=\"{Skip}\"&limit=\"{Limit}\"", RestSharp.Method.GET)]
+    [Endpoint("/buckets/{BucketId}/files/{FileId}?skip={Skip}&limit={Limit}", RestSharp.Method.GET)]
     [Header("x-token", "{XToken}")]
     class GetFilePointersRequest : StorjRestRequest
     {

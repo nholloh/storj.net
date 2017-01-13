@@ -23,5 +23,8 @@ namespace Storj.net.Model
 
         [JsonProperty("size")]
         public long Size { get; set; }
+
+        [JsonProperty("index")]
+        public int Index { get; set; }
     }
 }

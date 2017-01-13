@@ -26,6 +26,10 @@ namespace Storj.net
         /// </summary>
         static StorjClient()
         {
+            Log.DebugMode = true;
+
+            ExcludedFarmers = new List<string>();
+
             foreach (Type type in Assembly.GetAssembly(typeof(StorjClient)).GetTypes())
             {
                 foreach (PropertyInfo property in type.GetProperties())
@@ -77,6 +81,11 @@ namespace Storj.net
         /// </summary>
         [Default(8)]
         public static int ChallengesPerShard { get; set; }
+
+        /// <summary>
+        /// The list of node Ids of the farmers to be excluded from uploading shards
+        /// </summary>
+        public static List<string> ExcludedFarmers { get; set; }
         #endregion
 
         /// <summary>
@@ -323,6 +332,14 @@ namespace Storj.net
         public static void Logout()
         {
             StorjClient.Logout();
+        }
+
+        /// <summary>
+        /// Shuts down any interface after completing running processes and closes the application log file.
+        /// </summary>
+        public static void Shutdown()
+        {
+            Log.CloseLog();
         }
 
         /// <summary>

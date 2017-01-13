@@ -31,7 +31,7 @@ namespace Storj.net.Network.Request
         [JsonProperty("exclude")]
         public List<string> Exclude { get; set; }
 
-        public AddShardRequest(string frameId, string hash, long size, int index, List<string> challenges, List<string> tree)
+        public AddShardRequest(string frameId, string hash, long size, int index, List<string> challenges, List<string> tree, List<string> exclude = null)
         {
             this.FrameId = frameId;
             this.Hash = hash;
@@ -39,7 +39,7 @@ namespace Storj.net.Network.Request
             this.Index = index;
             this.Challenges = challenges;
             this.Tree = tree;
-            this.Exclude = new List<string>();
+            this.Exclude = (exclude == null ? new List<string>() : exclude);
         }
     }
 }

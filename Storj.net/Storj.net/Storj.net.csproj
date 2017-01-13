@@ -85,6 +85,7 @@
     <Compile Include="File\FileDownloader.cs" />
     <Compile Include="File\EmptyFrameCreator.cs" />
     <Compile Include="File\FileUploader.cs" />
+    <Compile Include="Log.cs" />
     <Compile Include="Model\AddShardResponse.cs" />
     <Compile Include="Model\Attribute\Default.cs" />
     <Compile Include="Model\Bucket.cs" />
